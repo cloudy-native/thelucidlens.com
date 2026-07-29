@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const repoUrl = 'https://github.com/cloudy-native/thelucidlens.com';
+---
+
+<Layout
+	title="Colophon"
+	description="How this site is made — source on GitHub."
+>
+	<header class="page-header">
+		<h1>Colophon</h1>
+	</header>
+
+	<div class="prose">
+		<p>
+			This site is a static photography portfolio. The code that builds
+			and deploys it is public under the MIT License. The photographs are
+			not part of that grant.
+		</p>
+		<p>
+			<a href={repoUrl} rel="noopener noreferrer">{repoUrl.replace('https://', '')}</a>
+		</p>
+	</div>
+</Layout>

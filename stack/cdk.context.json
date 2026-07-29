@@ -1,0 +1,9 @@
+{
+  "acknowledged-issue-numbers": [
+    34892
+  ],
+  "hosted-zone:account=607477397669:domainName=thelucidlens.com:region=us-east-1": {
+    "Id": "/hostedzone/Z2E4M67591STTM",
+    "Name": "thelucidlens.com."
+  }
+}
