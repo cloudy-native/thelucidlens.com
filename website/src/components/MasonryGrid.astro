@@ -1,0 +1,707 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { displayTitle } from '../lib/photos';
+
+interface Props {
+	photos: CollectionEntry<'photos'>[];
+	/** Subject title shown in lightbox metadata */
+	subjectTitle?: string;
+}
+
+const { photos, subjectTitle } = Astro.props;
+
+type PhotoPayload = {
+	id: string;
+	/** Human title only — never a camera filename */
+	title?: string;
+	caption?: string;
+	location?: string;
+	date?: string;
+	image: string;
+	width?: number;
+	height?: number;
+	subject?: string;
+	camera?: {
+		body?: string;
+		lens?: string;
+		aperture?: string;
+		shutter?: string;
+		iso?: string | number;
+		focalLength?: string;
+	};
+};
+
+const payload: PhotoPayload[] = photos.map((photo) => ({
+	id: photo.id,
+	title: displayTitle(photo.data.title, photo.data.caption),
+	caption: photo.data.caption,
+	location: photo.data.location,
+	date: photo.data.date
+		? photo.data.date.toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+			})
+		: undefined,
+	image: photo.data.image,
+	width: photo.data.width,
+	height: photo.data.height,
+	subject: subjectTitle,
+	camera: photo.data.camera,
+}));
+
+const galleryId = `gallery-${Math.random().toString(36).slice(2, 9)}`;
+const total = photos.length;
+---
+
+{
+	photos.length === 0 ? (
+		<p class="empty">No photographs in this collection yet.</p>
+	) : (
+		<div class="gallery" data-gallery={galleryId}>
+			<script type="application/json" data-gallery-payload set:html={JSON.stringify(payload)} />
+
+			<ul class="masonry" role="list">
+				{photos.map((photo, index) => {
+					const ratio =
+						photo.data.width && photo.data.height
+							? photo.data.height / photo.data.width
+							: undefined;
+					const label = subjectTitle
+						? `View photograph ${index + 1} of ${total}, ${subjectTitle}`
+						: `View photograph ${index + 1} of ${total}`;
+					return (
+						<li class="masonry__item">
+							<button
+								type="button"
+								class="photo-tile"
+								data-photo-index={index}
+								aria-label={label}
+							>
+								<span
+									class="photo-tile__frame"
+									style={ratio ? `aspect-ratio: 1 / ${ratio}` : undefined}
+								>
+									<img
+										src={photo.data.image}
+										alt=""
+										loading="lazy"
+										width={photo.data.width ?? 800}
+										height={photo.data.height ?? 1000}
+									/>
+								</span>
+							</button>
+						</li>
+					);
+				})}
+			</ul>
+
+			<dialog class="lightbox" data-lightbox aria-label="Photograph viewer">
+				<div class="lightbox__shell">
+					<button type="button" class="lightbox__close" data-lightbox-close aria-label="Close">
+						<span aria-hidden="true">×</span>
+					</button>
+
+					<button
+						type="button"
+						class="lightbox__nav lightbox__nav--prev"
+						data-lightbox-prev
+						aria-label="Previous photograph"
+					>
+						<span aria-hidden="true">‹</span>
+					</button>
+
+					<figure class="lightbox__figure">
+						<button
+							type="button"
+							class="lightbox__image-btn"
+							data-lightbox-expand
+							aria-label="View full size"
+						>
+							<img data-lightbox-image alt="" />
+						</button>
+						<figcaption class="lightbox__caption" data-lightbox-meta>
+							<div class="lightbox__header">
+								<p class="lightbox__subject" data-meta-subject></p>
+								<h2 class="lightbox__title" data-meta-title hidden></h2>
+								<p class="lightbox__text" data-meta-caption hidden></p>
+							</div>
+							<dl class="lightbox__dl">
+								<div class="lightbox__row" data-meta-row="location">
+									<dt class="meta-label">Location</dt>
+									<dd class="meta-value" data-meta-location></dd>
+								</div>
+								<div class="lightbox__row" data-meta-row="date">
+									<dt class="meta-label">Date</dt>
+									<dd class="meta-value" data-meta-date></dd>
+								</div>
+								<div class="lightbox__row" data-meta-row="camera">
+									<dt class="meta-label">Camera</dt>
+									<dd class="meta-value" data-meta-camera></dd>
+								</div>
+								<div class="lightbox__row" data-meta-row="settings">
+									<dt class="meta-label">Settings</dt>
+									<dd class="meta-value" data-meta-settings></dd>
+								</div>
+							</dl>
+							<div class="lightbox__actions">
+								<button type="button" class="lightbox__action" data-lightbox-open-full>
+									Full size
+								</button>
+								<button type="button" class="lightbox__action" data-lightbox-download>
+									Download
+								</button>
+							</div>
+						</figcaption>
+					</figure>
+
+					<button
+						type="button"
+						class="lightbox__nav lightbox__nav--next"
+						data-lightbox-next
+						aria-label="Next photograph"
+					>
+						<span aria-hidden="true">›</span>
+					</button>
+				</div>
+			</dialog>
+		</div>
+	)
+}
+
+<script>
+	function initGallery(root: HTMLElement) {
+		if (root.dataset.ready === 'true') return;
+		root.dataset.ready = 'true';
+
+		const payloadEl = root.querySelector('[data-gallery-payload]');
+		const dialog = root.querySelector<HTMLDialogElement>('[data-lightbox]');
+		if (!payloadEl || !dialog) return;
+
+		type Photo = {
+			id: string;
+			title?: string;
+			caption?: string;
+			location?: string;
+			date?: string;
+			image: string;
+			subject?: string;
+			camera?: {
+				body?: string;
+				lens?: string;
+				aperture?: string;
+				shutter?: string;
+				iso?: string | number;
+				focalLength?: string;
+			};
+		};
+
+		const photos = JSON.parse(payloadEl.textContent || '[]') as Photo[];
+		if (!photos.length) return;
+
+		let index = 0;
+		const img = dialog.querySelector<HTMLImageElement>('[data-lightbox-image]');
+		const expandBtn = dialog.querySelector<HTMLButtonElement>('[data-lightbox-expand]');
+		const titleEl = dialog.querySelector<HTMLElement>('[data-meta-title]');
+		const captionEl = dialog.querySelector<HTMLElement>('[data-meta-caption]');
+		const subjectEl = dialog.querySelector<HTMLElement>('[data-meta-subject]');
+		const locationEl = dialog.querySelector<HTMLElement>('[data-meta-location]');
+		const dateEl = dialog.querySelector<HTMLElement>('[data-meta-date]');
+		const cameraEl = dialog.querySelector<HTMLElement>('[data-meta-camera]');
+		const settingsEl = dialog.querySelector<HTMLElement>('[data-meta-settings]');
+
+		function setRow(name: string, visible: boolean) {
+			const row = dialog!.querySelector<HTMLElement>(`[data-meta-row="${name}"]`);
+			if (row) row.hidden = !visible;
+		}
+
+		function currentUrl() {
+			return photos[index]?.image || '';
+		}
+
+		function filenameFromUrl(url: string) {
+			try {
+				// pathname ignores ?v= content-hash cache busters from import
+				const path = new URL(url, window.location.href).pathname;
+				const name = decodeURIComponent(path.split('/').pop() || '');
+				return name || 'photograph.jpg';
+			} catch {
+				return 'photograph.jpg';
+			}
+		}
+
+		function setExpanded(expanded: boolean) {
+			dialog!.classList.toggle('is-expanded', expanded);
+			expandBtn?.setAttribute(
+				'aria-label',
+				expanded ? 'Exit full size' : 'View full size',
+			);
+		}
+
+		function render(i: number) {
+			const photo = photos[i];
+			if (!photo || !img) return;
+			index = i;
+			img.src = photo.image;
+			img.alt = photo.caption || photo.subject || 'Photograph';
+
+			if (titleEl) {
+				const showTitle = Boolean(photo.title);
+				titleEl.textContent = photo.title || '';
+				titleEl.hidden = !showTitle;
+			}
+			if (captionEl) {
+				captionEl.textContent = photo.caption || '';
+				captionEl.hidden = !photo.caption;
+			}
+			if (subjectEl) {
+				subjectEl.textContent = photo.subject || '';
+				subjectEl.hidden = !photo.subject;
+			}
+			if (locationEl) {
+				locationEl.textContent = photo.location || '';
+				setRow('location', Boolean(photo.location));
+			}
+			if (dateEl) {
+				dateEl.textContent = photo.date || '';
+				setRow('date', Boolean(photo.date));
+			}
+
+			const cam = photo.camera || {};
+			const cameraLine = [cam.body, cam.lens].filter(Boolean).join(' · ');
+			if (cameraEl) {
+				cameraEl.textContent = cameraLine;
+				setRow('camera', Boolean(cameraLine));
+			}
+
+			const settings = [
+				cam.focalLength,
+				cam.aperture,
+				cam.shutter,
+				cam.iso != null ? `ISO ${cam.iso}` : null,
+			]
+				.filter(Boolean)
+				.join(' · ');
+			if (settingsEl) {
+				settingsEl.textContent = settings;
+				setRow('settings', Boolean(settings));
+			}
+		}
+
+		function openAt(i: number) {
+			setExpanded(false);
+			render(i);
+			if (!dialog!.open) dialog!.showModal();
+		}
+
+		function close() {
+			setExpanded(false);
+			dialog!.close();
+		}
+
+		function next() {
+			setExpanded(false);
+			render((index + 1) % photos.length);
+		}
+
+		function prev() {
+			setExpanded(false);
+			render((index - 1 + photos.length) % photos.length);
+		}
+
+		function openFullSize() {
+			const url = currentUrl();
+			if (!url) return;
+			window.open(url, '_blank', 'noopener,noreferrer');
+		}
+
+		async function downloadPhoto() {
+			const url = currentUrl();
+			if (!url) return;
+			const name = filenameFromUrl(url);
+			try {
+				const res = await fetch(url, { mode: 'cors' });
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				const blob = await res.blob();
+				const objectUrl = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = objectUrl;
+				a.download = name;
+				a.rel = 'noopener';
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				URL.revokeObjectURL(objectUrl);
+			} catch {
+				// Cross-origin without usable CORS: open original (browser save-as works).
+				window.open(url, '_blank', 'noopener,noreferrer');
+			}
+		}
+
+		root.querySelectorAll<HTMLElement>('[data-photo-index]').forEach((btn) => {
+			btn.addEventListener('click', () => {
+				const i = Number(btn.getAttribute('data-photo-index'));
+				if (!Number.isNaN(i)) openAt(i);
+			});
+		});
+
+		expandBtn?.addEventListener('click', (event) => {
+			event.stopPropagation();
+			setExpanded(!dialog!.classList.contains('is-expanded'));
+		});
+
+		dialog.querySelector('[data-lightbox-close]')?.addEventListener('click', close);
+		dialog.querySelector('[data-lightbox-next]')?.addEventListener('click', next);
+		dialog.querySelector('[data-lightbox-prev]')?.addEventListener('click', prev);
+		dialog.querySelector('[data-lightbox-open-full]')?.addEventListener('click', openFullSize);
+		dialog.querySelector('[data-lightbox-download]')?.addEventListener('click', () => {
+			void downloadPhoto();
+		});
+
+		dialog.addEventListener('click', (event) => {
+			if (event.target === dialog) close();
+		});
+
+		dialog.addEventListener('close', () => {
+			setExpanded(false);
+		});
+
+		dialog.addEventListener('keydown', (event) => {
+			if (event.key === 'ArrowRight') {
+				event.preventDefault();
+				next();
+			} else if (event.key === 'ArrowLeft') {
+				event.preventDefault();
+				prev();
+			} else if (event.key === 'f' || event.key === 'F') {
+				event.preventDefault();
+				setExpanded(!dialog!.classList.contains('is-expanded'));
+			}
+		});
+	}
+
+	function initAll() {
+		document.querySelectorAll<HTMLElement>('[data-gallery]').forEach(initGallery);
+	}
+
+	initAll();
+	document.addEventListener('astro:page-load', initAll);
+</script>
+
+<style>
+	.empty {
+		color: var(--text-muted);
+		margin: 0;
+	}
+
+	.masonry {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		column-count: 1;
+		column-gap: 0.85rem;
+	}
+
+	@media (min-width: 560px) {
+		.masonry {
+			column-count: 2;
+		}
+	}
+
+	@media (min-width: 900px) {
+		.masonry {
+			column-count: 3;
+			column-gap: 1rem;
+		}
+	}
+
+	.masonry__item {
+		break-inside: avoid;
+		margin: 0 0 0.85rem;
+	}
+
+	@media (min-width: 900px) {
+		.masonry__item {
+			margin-bottom: 1rem;
+		}
+	}
+
+	.photo-tile {
+		display: block;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		cursor: zoom-in;
+		text-align: left;
+		font: inherit;
+		color: inherit;
+	}
+
+	.photo-tile:focus-visible {
+		outline: 1px solid var(--text-faint);
+		outline-offset: 3px;
+	}
+
+	.photo-tile__frame {
+		display: block;
+		overflow: hidden;
+		background: var(--bg-muted);
+	}
+
+	.photo-tile__frame img {
+		width: 100%;
+		height: auto;
+		vertical-align: middle;
+		transition: opacity 0.25s ease, transform 0.5s ease;
+	}
+
+	.photo-tile:hover .photo-tile__frame img {
+		opacity: 0.88;
+	}
+
+	.lightbox {
+		width: min(100vw - 1rem, 74rem);
+		max-width: calc(100vw - 1rem);
+		max-height: calc(100vh - 1rem);
+		margin: auto;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: 0;
+		background: var(--bg-elevated);
+		color: var(--text);
+		box-shadow: var(--shadow);
+		transition: width 0.2s ease, max-width 0.2s ease, max-height 0.2s ease;
+	}
+
+	.lightbox.is-expanded {
+		width: calc(100vw - 0.5rem);
+		max-width: calc(100vw - 0.5rem);
+		max-height: calc(100vh - 0.5rem);
+		height: calc(100vh - 0.5rem);
+		border-color: #111;
+		background: #000;
+	}
+
+	.lightbox::backdrop {
+		background: rgba(0, 0, 0, 0.82);
+		backdrop-filter: blur(6px);
+	}
+
+	.lightbox.is-expanded::backdrop {
+		background: rgba(0, 0, 0, 0.94);
+	}
+
+	.lightbox__shell {
+		position: relative;
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: stretch;
+		gap: 0;
+		min-height: min(80vh, 40rem);
+	}
+
+	.lightbox.is-expanded .lightbox__shell {
+		height: 100%;
+		min-height: 0;
+	}
+
+	.lightbox__figure {
+		grid-column: 2;
+		margin: 0;
+		display: grid;
+		grid-template-columns: 1fr;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	@media (min-width: 800px) {
+		.lightbox__figure {
+			grid-template-columns: minmax(0, 1.45fr) minmax(13rem, 0.65fr);
+		}
+
+		.lightbox.is-expanded .lightbox__figure {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.lightbox__image-btn {
+		display: block;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: #000;
+		cursor: zoom-in;
+		min-height: 0;
+	}
+
+	.lightbox.is-expanded .lightbox__image-btn {
+		cursor: zoom-out;
+		height: 100%;
+		display: grid;
+		place-items: center;
+	}
+
+	.lightbox__image-btn:focus-visible {
+		outline: 1px solid var(--text-faint);
+		outline-offset: -2px;
+	}
+
+	.lightbox__image-btn img {
+		width: 100%;
+		height: 100%;
+		max-height: min(78vh, 42rem);
+		object-fit: contain;
+		background: #000;
+		vertical-align: middle;
+		pointer-events: none;
+	}
+
+	.lightbox.is-expanded .lightbox__image-btn img {
+		max-height: calc(100vh - 0.5rem);
+		max-width: 100%;
+		width: auto;
+		height: auto;
+	}
+
+	.lightbox__caption {
+		padding: 1.5rem 1.35rem 1.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		border-top: 1px solid var(--border);
+		overflow: auto;
+		background: var(--bg-elevated);
+	}
+
+	.lightbox.is-expanded .lightbox__caption,
+	.lightbox.is-expanded .lightbox__nav {
+		display: none;
+	}
+
+	@media (min-width: 800px) {
+		.lightbox__caption {
+			border-top: 0;
+			border-left: 1px solid var(--border);
+		}
+	}
+
+	.lightbox__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: auto;
+		padding-top: 0.25rem;
+	}
+
+	.lightbox__action {
+		appearance: none;
+		font: inherit;
+		font-size: 0.72rem;
+		font-weight: 500;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		padding: 0.65rem 0.9rem;
+		border: 1px solid var(--border-strong);
+		background: transparent;
+		color: var(--text);
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease;
+	}
+
+	.lightbox__action:hover {
+		background: var(--bg-hover);
+		border-color: var(--text-faint);
+	}
+
+	.lightbox__subject {
+		margin: 0 0 0.5rem;
+		font-size: 0.68rem;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--text-faint);
+	}
+
+	.lightbox__title {
+		font-size: 1.15rem;
+		font-weight: 400;
+		letter-spacing: -0.01em;
+		margin: 0 0 0.55rem;
+	}
+
+	.lightbox__text {
+		margin: 0;
+		font-size: 0.92rem;
+		color: var(--text-muted);
+		line-height: 1.55;
+	}
+
+	.lightbox__dl {
+		margin: 0;
+		display: grid;
+		gap: 1rem;
+	}
+
+	.lightbox__row {
+		margin: 0;
+	}
+
+	.lightbox__row dd {
+		margin: 0;
+	}
+
+	.lightbox__close {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 2;
+		width: 2.5rem;
+		height: 2.5rem;
+		border: 0;
+		border-radius: 0;
+		background: color-mix(in srgb, var(--bg) 70%, transparent);
+		color: var(--text);
+		font-size: 1.45rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.lightbox__close:hover {
+		background: var(--bg-hover);
+	}
+
+	.lightbox__nav {
+		align-self: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		margin: 0.5rem;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		color: var(--text-muted);
+		font-size: 1.75rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.lightbox__nav:hover {
+		color: var(--text);
+		background: var(--bg-hover);
+	}
+
+	@media (max-width: 640px) {
+		.lightbox__nav {
+			display: none;
+		}
+
+		.lightbox__shell {
+			grid-template-columns: 1fr;
+		}
+
+		.lightbox__figure {
+			grid-column: 1;
+		}
+	}
+</style>

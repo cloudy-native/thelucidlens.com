@@ -1,0 +1,62 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+	title="About"
+	description="About The Lucid Lens — a multi-subject photography practice."
+>
+	<header class="page-header">
+		<h1>About</h1>
+	</header>
+
+	<div class="about-layout">
+		<div class="prose">
+			<p>
+				Each collection is a place to sit with one kind of
+				looking—textures, city, marketplace—without forcing a single
+				narrative across everything.
+			</p>
+			<p>
+				... is what I would say if I was going for pretentious artist
+				statementese mumbo-jumbo. But I'm the opposite of that.
+			</p>
+			<p>
+				Here are some random pics I took along the way without a second
+				thought about portfolios and such.
+			</p>
+			<p>
+				I'm retired in the Land of Smiles, living an extraordinary life
+				with Eng, my best friend and amazing partner in Si Lom, Bangkok.
+			</p>
+		</div>
+	</div>
+</Layout>
+
+<style>
+	.about-layout {
+		display: grid;
+		gap: 2rem;
+		align-items: start;
+	}
+
+	@media (min-width: 720px) {
+		.about-layout {
+			grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+			gap: 3rem;
+		}
+	}
+
+	.about-portrait__frame {
+		aspect-ratio: 4 / 5;
+		display: grid;
+		place-items: center;
+		background: var(--bg-muted);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		color: var(--text-faint);
+		font-size: 0.85rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+</style>

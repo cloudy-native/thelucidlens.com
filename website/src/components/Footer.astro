@@ -1,0 +1,85 @@
+---
+const year = new Date().getFullYear();
+const email = 'dinsor@dinsor.org';
+---
+
+<footer class="site-footer">
+	<div class="site-footer__inner">
+		<div class="site-footer__col">
+			<p class="site-footer__heading">Lucid Lens</p>
+			<p class="site-footer__meta">&copy; {year}, Stephen Harrison</p>
+		</div>
+
+		<div class="site-footer__col">
+			<p class="site-footer__heading">Explore</p>
+			<nav class="site-footer__links" aria-label="Footer">
+				<a class="site-footer__link" href="/">Work</a>
+				<a class="site-footer__link" href="/about">About</a>
+			</nav>
+		</div>
+
+		<div class="site-footer__col">
+			<p class="site-footer__heading">Contact</p>
+			<div class="site-footer__links">
+				<a class="site-footer__link" href={`mailto:${email}`}>{email}</a>
+			</div>
+		</div>
+	</div>
+</footer>
+
+<style>
+	.site-footer {
+		border-top: 1px solid var(--border);
+		padding-block: 2.5rem 2rem;
+	}
+
+	.site-footer__inner {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1.75rem 2.5rem;
+		width: min(100% - 2 * var(--gutter), var(--measure));
+		margin-inline: auto;
+	}
+
+	@media (min-width: 640px) {
+		.site-footer__inner {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 2rem;
+		}
+	}
+
+	.site-footer__heading {
+		margin: 0 0 0.75rem;
+		font-size: 0.72rem;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.site-footer__meta {
+		margin: 0;
+		font-size: 0.78rem;
+		color: var(--text-faint);
+	}
+
+	.site-footer__links {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.site-footer__link {
+		display: block;
+		font-size: 0.88rem;
+		line-height: 1.4;
+		color: var(--text-muted);
+		text-decoration: none;
+		transition: color 0.15s ease;
+	}
+
+	.site-footer__link:hover {
+		color: var(--text);
+	}
+</style>

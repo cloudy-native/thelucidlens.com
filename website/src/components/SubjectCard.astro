@@ -1,0 +1,90 @@
+---
+interface Props {
+	title: string;
+	description?: string;
+	href: string;
+	cover: string;
+	count: number;
+}
+
+const { title, description, href, cover, count } = Astro.props;
+const countLabel = count === 1 ? '1 photograph' : `${count} photographs`;
+const desc = description?.trim() || '';
+---
+
+<a class="subject-card" href={href}>
+	<div class="subject-card__media">
+		<img src={cover} alt="" loading="lazy" width="800" height="600" />
+		<div class="subject-card__overlay">
+			<h2 class="subject-card__title">{title}</h2>
+			<p class="subject-card__count">{countLabel}</p>
+		</div>
+	</div>
+	{desc ? <p class="subject-card__desc">{desc}</p> : null}
+</a>
+
+<style>
+	.subject-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.subject-card:hover {
+		color: inherit;
+	}
+
+	.subject-card__media {
+		position: relative;
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+		background: var(--bg-muted);
+	}
+
+	.subject-card__media img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.55s ease, opacity 0.35s ease;
+	}
+
+	.subject-card:hover .subject-card__media img {
+		transform: scale(1.04);
+		opacity: 0.85;
+	}
+
+	.subject-card__overlay {
+		position: absolute;
+		inset: auto 0 0 0;
+		padding: 1.25rem 1.15rem;
+		background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.subject-card__title {
+		font-size: 1.15rem;
+		font-weight: 400;
+		letter-spacing: -0.01em;
+		margin: 0;
+		color: #fff;
+	}
+
+	.subject-card__count {
+		margin: 0;
+		font-size: 0.68rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: rgba(255, 255, 255, 0.65);
+	}
+
+	.subject-card__desc {
+		margin: 0;
+		font-size: 0.88rem;
+		color: var(--text-muted);
+		line-height: 1.45;
+	}
+</style>
