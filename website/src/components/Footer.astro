@@ -1,6 +1,6 @@
 ---
 const year = new Date().getFullYear();
-const email = 'dinsor@dinsor.org';
+const contactUrl = 'https://dinsor.org';
 ---
 
 <footer class="site-footer">
@@ -15,13 +15,14 @@ const email = 'dinsor@dinsor.org';
 			<nav class="site-footer__links" aria-label="Footer">
 				<a class="site-footer__link" href="/">Work</a>
 				<a class="site-footer__link" href="/about">About</a>
+				<a class="site-footer__link" href="/colophon">Colophon</a>
 			</nav>
 		</div>
 
 		<div class="site-footer__col">
 			<p class="site-footer__heading">Contact</p>
 			<div class="site-footer__links">
-				<a class="site-footer__link" href={`mailto:${email}`}>{email}</a>
+				<a class="site-footer__link" href={contactUrl} rel="noopener noreferrer">dinsor.org</a>
 			</div>
 		</div>
 	</div>
